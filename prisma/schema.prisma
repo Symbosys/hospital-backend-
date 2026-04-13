@@ -1,0 +1,107 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "binary"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Login {
+  id          String    @id @default(uuid())
+  personnelId String    @unique @map("personnel_id")
+  password    String // Hashed Security Key
+  role        Role      @default(STAFF)
+  lastLogin   DateTime? @map("last_login")
+  isActive    Boolean   @default(true) @map("is_active")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  updatedAt   DateTime  @updatedAt @map("updated_at")
+
+  @@map("users")
+}
+
+model Department {
+  id          String   @id @default(uuid())
+  name        String   @unique
+  head        String   // Head Surgeon/Doctor
+  staffCount  Int      @default(0) @map("staff_count")
+  occupancy   Int      @default(0) // Percentage 0-100
+  status      String   // Optimal, High Load, Critical, Available
+  color       String   // e.g., rose, blue, indigo, red
+  wards       Ward[]
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("departments")
+}
+
+model Ward {
+  id           String   @id @default(uuid())
+  name         String   @unique
+  departmentId String   @map("department_id")
+  department   Department @relation(fields: [departmentId], references: [id])
+  totalBeds    Int      @default(0) @map("total_beds")
+  color        String   // e.g., rose, blue, amber
+  beds         Bed[]
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("wards")
+}
+
+model Bed {
+  id        String   @id @default(uuid())
+  bedNumber String   @map("bed_number")
+  wardId    String   @map("ward_id")
+  ward      Ward     @relation(fields: [wardId], references: [id])
+  status    String   // Occupied, Available, Cleaning
+  patientId String?  @map("patient_id") // e.g., PT-4105
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@unique([wardId, bedNumber])
+  @@map("beds")
+}
+
+model OperationTheatre {
+  id           String   @id @default(uuid())
+  theatreId    String   @unique @map("theatre_id") // e.g., OT-01
+  status       String   // Active Surgery, Ready, Cleaning
+  doctor       String?  @map("lead_doctor") // e.g., Dr. Elena Gilbert
+  patient      String?  @map("patient_id")
+  procedure    String?  @map("procedure_name")
+  progress     Int      @default(0)
+  equipment    String   @default("Good") // Excellent, Ready, Observation
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  @@map("operation_theatres")
+}
+
+model LaboratoryTest {
+  id        String   @id @default(uuid())
+  testId    String   @unique @map("test_id") // e.g., LAB-X1
+  name      String
+  type      String   // e.g., Hematology, Biochemistry, Radiology
+  time      String   // e.g., 2 Hours, 24 Hours
+  status    String   // Critical Priority, Urgent, Routine, Scheduled
+  price     String   // e.g., ₹850
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("laboratory_tests")
+}
+
+enum Role {
+  ADMIN
+  DOCTOR 
+  NURSE
+  STAFF
+  LAB_TECHNICIAN
+  PHARMACIST
+}
