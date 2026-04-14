@@ -1,13 +1,11 @@
 import "dotenv/config";
-import pg from "pg";
-import { PrismaPg } from "@prisma/adapter-pg";
+import { PrismaNeonHttp } from "@prisma/adapter-neon";
 import { PrismaClient } from "@prisma/client";
 
-const { Pool } = pg;
-const connectionString = `${process.env.DATABASE_URL}`;
+// Institutional Database Handshake Protocol (Using Specialized Neon HTTP Adapter)
+const DB_URL = process.env.DATABASE_URL!;
 
-const pool = new Pool({ connectionString });
-const adapter = new PrismaPg(pool);
-const prisma = new PrismaClient({ adapter });
+const adapter = new PrismaNeonHttp(DB_URL);
+const prisma = new PrismaClient({ adapter: adapter as any });
 
 export { prisma };

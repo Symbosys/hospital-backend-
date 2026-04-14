@@ -1,12 +1,13 @@
 import type { Request, Response } from "express";
 import { prisma } from "../../../prisma.js";
 import { otSchema, updateOTSchema } from "../../../zod/validation/ot.validation.js";
+import { asyncHandler } from "../../../middleware/error.middleware.js";
 
 /**
  * @desc    Fetch all surgical units (Operation Theatres)
  * @route   GET /api/ot
  */
-export const getOTs = async (req: Request, res: Response) => {
+export const getOTs = asyncHandler(async (req: Request, res: Response) => {
   try {
     const theatres = await prisma.operationTheatre.findMany({
       orderBy: { theatreId: "asc" }
@@ -23,13 +24,13 @@ export const getOTs = async (req: Request, res: Response) => {
       message: "Surgical matrix node unreachable."
     });
   }
-};
+});
 
 /**
  * @desc    Initialize a new surgical theatre node
  * @route   POST /api/ot
  */
-export const createOT = async (req: Request, res: Response) => {
+export const createOT = asyncHandler(async (req: Request, res: Response) => {
   try {
     const validation = otSchema.safeParse(req.body);
     if (!validation.success) {
@@ -67,13 +68,13 @@ export const createOT = async (req: Request, res: Response) => {
       message: "Failed to initialize surgical node."
     });
   }
-};
+});
 
 /**
  * @desc    Update theatre status or surgical progress
  * @route   PATCH /api/ot/:id
  */
-export const updateOT = async (req: Request, res: Response) => {
+export const updateOT = asyncHandler(async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
     const validation = updateOTSchema.safeParse(req.body);
@@ -116,13 +117,13 @@ export const updateOT = async (req: Request, res: Response) => {
       message: "Internal surgical system failure."
     });
   }
-};
+});
 
 /**
  * @desc    Decommission surgical theatre node
  * @route   DELETE /api/ot/:id
  */
-export const deleteOT = async (req: Request, res: Response) => {
+export const deleteOT = asyncHandler(async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
 
@@ -149,4 +150,4 @@ export const deleteOT = async (req: Request, res: Response) => {
       message: "Failed to decommission surgical node."
     });
   }
-};
+});

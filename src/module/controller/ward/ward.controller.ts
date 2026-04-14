@@ -1,16 +1,18 @@
 import type { Request, Response } from "express";
 import { prisma } from "../../../prisma.js";
 import { wardSchema, updateWardSchema } from "../../../zod/validation/ward.validation.js";
+import { asyncHandler } from "../../../middleware/error.middleware.js";
 
 /**
  * @desc    Fetch all clinical wards matrix
  * @route   GET /api/wards
  */
-export const getWards = async (req: Request, res: Response) => {
+export const getWards = asyncHandler(async (req: Request, res: Response) => {
   try {
     const wards = await prisma.ward.findMany({
       include: {
         department: { select: { name: true } },
+        beds: true,
         _count: { select: { beds: true } },
       },
     });
@@ -26,13 +28,13 @@ export const getWards = async (req: Request, res: Response) => {
       message: "Ward topology unreachable.",
     });
   }
-};
+});
 
 /**
  * @desc    Initialize a new ward node and its bed matrix
  * @route   POST /api/wards
  */
-export const createWard = async (req: Request, res: Response) => {
+export const createWard = asyncHandler(async (req: Request, res: Response) => {
   try {
     const validation = wardSchema.safeParse(req.body);
     if (!validation.success) {
@@ -83,13 +85,13 @@ export const createWard = async (req: Request, res: Response) => {
       message: "Failed to initialize ward and bed matrix.",
     });
   }
-};
+});
 
 /**
  * @desc    Update ward telemetry/hierarchy
  * @route   PATCH /api/wards/:id
  */
-export const updateWard = async (req: Request, res: Response) => {
+export const updateWard = asyncHandler(async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
     const validation = updateWardSchema.safeParse(req.body);
@@ -123,13 +125,13 @@ export const updateWard = async (req: Request, res: Response) => {
       message: "Internal reconfiguration failure.",
     });
   }
-};
+});
 
 /**
  * @desc    Decommission ward node (only if all beds are empty)
  * @route   DELETE /api/wards/:id
  */
-export const deleteWard = async (req: Request, res: Response) => {
+export const deleteWard = asyncHandler(async (req: Request, res: Response) => {
   try {
     const id = req.params.id as string;
 
@@ -165,4 +167,4 @@ export const deleteWard = async (req: Request, res: Response) => {
       message: "Failed to decommission ward node.",
     });
   }
-};
+});

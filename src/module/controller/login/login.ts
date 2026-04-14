@@ -1,8 +1,11 @@
 import type { Request, Response } from "express";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import fs from "fs";
+import path from "path";
 import { prisma } from "../../../prisma.js";
 import { loginSchema, registerSchema } from "../../../zod/validation/auth.validation.js";
+import { asyncHandler } from "../../../middleware/error.middleware.js";
 
 /**
  * @desc    Handle Personnel Authentication
@@ -10,40 +13,42 @@ import { loginSchema, registerSchema } from "../../../zod/validation/auth.valida
  */
 export const login = async (req: Request, res: Response) => {
   try {
-    // 1. Data Validation
     const validation = loginSchema.safeParse(req.body);
     if (!validation.success) {
       return res.status(400).json({
         success: false,
-        message: "Validation Error",
+        message: "Identification Protocol Failed: Invalid input format",
         errors: validation.error.flatten().fieldErrors,
       });
     }
 
     const { personnelId, password } = validation.data;
+    console.log("Authentication scan initiated for:", personnelId);
 
-    // 2. Identify Personnel Node
-    const user = await prisma.login.findUnique({
+    // 1. Identify Personnel Node in Institutional Data Layer
+    const user = await prisma.user.findUnique({
       where: { personnelId },
     });
 
     if (!user) {
+      console.warn("Identification failure: ID not found", personnelId);
       return res.status(401).json({
         success: false,
-        message: "Access Denied: Invalid credentials",
+        message: "Access Denied: Personnel ID not recognized",
       });
     }
 
-    // 3. Security Check (Password Comparison)
+    // 2. Validate Security Credentials
     const isMatched = await bcrypt.compare(password, user.password);
     if (!isMatched) {
+      console.warn("Security violation: Invalid key for", personnelId);
       return res.status(401).json({
         success: false,
-        message: "Access Denied: Invalid credentials",
+        message: "Access Denied: Invalid security credentials",
       });
     }
 
-    // 4. Institutional Status Check
+    // 3. Status Validation
     if (!user.isActive) {
       return res.status(403).json({
         success: false,
@@ -51,27 +56,24 @@ export const login = async (req: Request, res: Response) => {
       });
     }
 
-    // 5. Intelligence Session Initialization (JWT)
+    // 4. Session Initialization (JWT)
     const token = jwt.sign(
-      { 
-        sub: user.id, 
-        pid: user.personnelId, 
-        role: user.role 
-      },
+      { sub: user.id, pid: user.personnelId, role: user.role },
       process.env.JWT_SECRET || "medicare_erp_secure_2026",
       { expiresIn: "12h" }
     );
 
-    // 6. Log Institutional Access
-    await prisma.login.update({
+    // 5. Update Telemetry
+    await prisma.user.update({
       where: { id: user.id },
       data: { lastLogin: new Date() },
-    });
+    }).catch(e => console.error("Telemetry update failed", e));
 
-    // 7. Successful Handshake
+    console.log("Authentication successful for:", personnelId);
+    
     return res.status(200).json({
       success: true,
-      message: "Credentials verified. Protocol initialized.",
+      message: "Credentials verified. Institutional access granted.",
       token,
       profile: {
         id: user.id,
@@ -81,10 +83,12 @@ export const login = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    console.error("CRITICAL_AUTH_FAILURE:", error);
+    console.error("DISTRIBUTED_CORE_FAILURE:", error);
+
     return res.status(500).json({
       success: false,
       message: "Internal system error during authentication handshake",
+      error: error instanceof Error ? error.message : String(error)
     });
   }
 };
@@ -99,37 +103,35 @@ export const register = async (req: Request, res: Response) => {
     if (!validation.success) {
       return res.status(400).json({
         success: false,
-        message: "Infrastructure Check Failed",
+        message: "Validation Error",
         errors: validation.error.flatten().fieldErrors,
       });
     }
 
     const { personnelId, password, role } = validation.data;
 
-    // Check for duplicate nodes
-    const exists = await prisma.login.findUnique({ where: { personnelId } });
+    // Check availability
+    const exists = await prisma.user.findUnique({ where: { personnelId } });
     if (exists) {
       return res.status(409).json({
         success: false,
-        message: "Personnel ID already exists in database",
+        message: "Personnel ID already registered",
       });
     }
 
-    // Encrypt security key
-    const hashedKey = await bcrypt.hash(password, 12);
+    const hashedPassword = await bcrypt.hash(password, 12);
 
-    // Create entry
-    const newUser = await prisma.login.create({
+    const newUser = await prisma.user.create({
       data: {
         personnelId,
-        password: hashedKey,
-        role: role || "STAFF",
+        password: hashedPassword,
+        role: role as any || "STAFF",
       },
     });
 
     return res.status(201).json({
       success: true,
-      message: "Personnel node initialized successfully",
+      message: "Personnel node initialized",
       profile: {
         id: newUser.id,
         personnelId: newUser.personnelId,
@@ -138,10 +140,10 @@ export const register = async (req: Request, res: Response) => {
     });
 
   } catch (error) {
-    console.error("CRITICAL_REG_FAILURE:", error);
+    console.error("REGISTRATION_FAILURE:", error);
     return res.status(500).json({
       success: false,
-      message: "Failed to initialize personnel node",
+      message: "Internal system error during registration",
     });
   }
 };

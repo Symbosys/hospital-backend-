@@ -29,7 +29,7 @@ export const protect = asyncHandler(async (req: any, res: Response, next: NextFu
     }
 
     // Identify personnel node in the centralized authority
-    const user = await prisma.login.findUnique({
+    const user = await prisma.user.findUnique({
       where: { id: decoded.sub },
     });
 

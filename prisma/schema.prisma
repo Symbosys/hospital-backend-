@@ -4,25 +4,24 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider   = "prisma-client-js"
-  engineType = "binary"
+  provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
 }
 
-model Login {
+model User {
   id          String    @id @default(uuid())
   personnelId String    @unique @map("personnel_id")
-  password    String // Hashed Security Key
+  password    String
   role        Role      @default(STAFF)
-  lastLogin   DateTime? @map("last_login")
   isActive    Boolean   @default(true) @map("is_active")
+  lastLogin   DateTime? @map("last_login")
   createdAt   DateTime  @default(now()) @map("created_at")
   updatedAt   DateTime  @updatedAt @map("updated_at")
 
-  @@map("users")
+  @@map("User")
 }
 
 model Department {
@@ -104,4 +103,54 @@ enum Role {
   STAFF
   LAB_TECHNICIAN
   PHARMACIST
+}
+
+model BloodInventory {
+  id          String   @id @default(uuid())
+  group       String   @unique // O+, A-, etc.
+  units       Int      @default(0)
+  status      String   // Optimal, Low, Critical
+  lastStocked DateTime @default(now()) @map("last_stocked")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("blood_inventory")
+}
+
+model PharmacyItem {
+  id          String   @id @default(uuid())
+  itemId      String   @unique @map("item_id") // e.g., PHARM-902
+  name        String
+  category    String   // e.g., Antibiotic, Analgesic
+  stock       Int      @default(0)
+  unit        String   // e.g., Tablets, Vials
+  status      String   // In Stock, Low Stock, Out of Stock
+  price       String
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("pharmacy_items")
+}
+
+model Consumable {
+  id          String   @id @default(uuid())
+  itemId      String   @unique @map("item_id") // e.g., CON-402
+  name        String
+  category    String   // e.g., Surgical, PPE, General
+  stock       Int      @default(0)
+  status      String   // Optimal, Low, Critical
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("consumables")
+}
+
+model BloodDonor {
+  id          String   @id @default(uuid())
+  name        String
+  bloodGroup  String   @map("blood_group")
+  phone       String
+  lastDonated DateTime? @map("last_donated")
+  status      String   @default("Eligible") // Eligible, Deferred, Ineligible
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("blood_donors")
 }
