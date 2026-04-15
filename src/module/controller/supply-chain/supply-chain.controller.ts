@@ -12,7 +12,7 @@ export const getBloodInventory = asyncHandler(async (req: Request, res: Response
 });
 
 export const updateBloodStock = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params["id"] as string;
   const { units, status } = req.body;
   
   console.log(`[LOGISTICS] Initiating blood stock update for node ${id}: units=${units}, status=${status}`);
@@ -38,7 +38,7 @@ export const getPharmacyItems = asyncHandler(async (req: Request, res: Response)
 });
 
 export const updatePharmacyItem = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params["id"] as string;
   const { stock, status } = req.body;
 
   console.log(`[PHARMA] Initiating stock update for item ${id}: stock=${stock}, status=${status}`);
@@ -63,7 +63,7 @@ export const getConsumables = asyncHandler(async (req: Request, res: Response) =
 });
 
 export const updateConsumable = asyncHandler(async (req: Request, res: Response) => {
-  const { id } = req.params;
+  const id = req.params["id"] as string;
   const { stock, status } = req.body;
 
   console.log(`[CONSUMABLES] Adjusting inventory for node ${id}: stock=${stock}, status=${status}`);

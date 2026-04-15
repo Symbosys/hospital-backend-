@@ -105,6 +105,137 @@ enum Role {
   PHARMACIST
 }
 
+// ── Human Capital ─────────────────────────────────────────────────────────────
+
+model Patient {
+  id           String    @id @default(uuid())
+  patientId    String    @unique @map("patient_id") // e.g., PT-4105
+  name         String
+  age          Int
+  gender       String    // Male, Female, Other
+  bloodGroup   String    @map("blood_group")
+  phone        String
+  address      String?
+  condition    String    // Stable, Critical, Recovery, etc.
+  ward         String?
+  admittedOn   DateTime? @map("admitted_on")
+  dischargedOn DateTime? @map("discharged_on")
+  status       String    @default("Inpatient") // Inpatient, Outpatient, Discharged
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  appointments  Appointment[]
+  billingRecords BillingRecord[]
+  ehrRecords    EHRRecord[]
+
+  @@map("patients")
+}
+
+model Doctor {
+  id           String   @id @default(uuid())
+  doctorId     String   @unique @map("doctor_id") // e.g., DR-001
+  name         String
+  specialty    String
+  departmentId String?  @map("department_id")
+  phone        String
+  email        String?  @unique
+  experience   Int      @default(0) // Years of experience
+  status       String   @default("On Duty") // On Duty, Off Duty, On Leave
+  schedule     String?  // e.g., Mon-Fri
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  appointments Appointment[]
+
+  @@map("doctors")
+}
+
+model MedicalStaff {
+  id          String   @id @default(uuid())
+  staffId     String   @unique @map("staff_id") // e.g., NRS-201
+  name        String
+  role        String   // Nurse, Paramedic, Technician, etc.
+  department  String
+  phone       String
+  shift       String   // Morning, Evening, Night
+  status      String   @default("On Duty") // On Duty, Off Duty, On Leave
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("medical_staff")
+}
+
+model NonMedicalStaff {
+  id          String   @id @default(uuid())
+  staffId     String   @unique @map("staff_id") // e.g., ADM-301
+  name        String
+  designation String   // Admin, Housekeeping, Security, IT, etc.
+  department  String
+  phone       String
+  shift       String   // Morning, Evening, Night
+  status      String   @default("Active") // Active, Inactive, On Leave
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("non_medical_staff")
+}
+
+// ── Clinical Operations ───────────────────────────────────────────────────────
+
+model Appointment {
+  id            String   @id @default(uuid())
+  appointmentId String   @unique @map("appointment_id") // e.g., APT-1001
+  patientId     String   @map("patient_id")
+  patient       Patient  @relation(fields: [patientId], references: [id])
+  doctorId      String   @map("doctor_id")
+  doctor        Doctor   @relation(fields: [doctorId], references: [id])
+  date          DateTime
+  timeSlot      String   @map("time_slot") // e.g., 10:00 AM
+  type          String   // Consultation, Follow-up, Emergency, Procedure
+  status        String   @default("Scheduled") // Scheduled, Completed, Cancelled, No-Show
+  notes         String?
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  @@map("appointments")
+}
+
+model BillingRecord {
+  id          String   @id @default(uuid())
+  billId      String   @unique @map("bill_id") // e.g., BILL-5001
+  patientId   String   @map("patient_id")
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  amount      Float
+  paidAmount  Float    @default(0) @map("paid_amount")
+  category    String   // Consultation, Surgery, Lab, Pharmacy, Room
+  status      String   @default("Pending") // Pending, Paid, Partial, Waived
+  paymentMode String?  @map("payment_mode") // Cash, Card, Insurance, UPI
+  issuedOn    DateTime @default(now()) @map("issued_on")
+  dueDate     DateTime? @map("due_date")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("billing_records")
+}
+
+model EHRRecord {
+  id          String   @id @default(uuid())
+  ehrId       String   @unique @map("ehr_id") // e.g., EHR-9001
+  patientId   String   @map("patient_id")
+  patient     Patient  @relation(fields: [patientId], references: [id])
+  diagnosis   String
+  prescription String?
+  notes       String?
+  vitals      String?  // JSON string: { bp, pulse, temp, spo2 }
+  doctorName  String   @map("doctor_name")
+  visitDate   DateTime @map("visit_date")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@map("ehr_records")
+}
+
+// ── Supply Chain ──────────────────────────────────────────────────────────────
+
 model BloodInventory {
   id          String   @id @default(uuid())
   group       String   @unique // O+, A-, etc.
