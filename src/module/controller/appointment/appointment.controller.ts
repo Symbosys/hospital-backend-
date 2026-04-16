@@ -12,12 +12,24 @@ export const getAppointments = async (req: Request, res: Response) => {
     const type = req.query["type"] as string | undefined;
     const doctorId = req.query["doctorId"] as string | undefined;
     const patientId = req.query["patientId"] as string | undefined;
+    const date = req.query["date"] as string | undefined;
 
-    const where: Record<string, unknown> = {};
+    const where: Record<string, any> = {};
     if (status) where["status"] = status;
     if (type) where["type"] = type;
     if (doctorId) where["doctorId"] = doctorId;
     if (patientId) where["patientId"] = patientId;
+    
+    if (date) {
+      const startOfDay = new Date(date);
+      startOfDay.setHours(0, 0, 0, 0);
+      const endOfDay = new Date(date);
+      endOfDay.setHours(23, 59, 59, 999);
+      where["date"] = {
+        gte: startOfDay,
+        lte: endOfDay,
+      };
+    }
 
     const appointments = await prisma.appointment.findMany({
       where,
